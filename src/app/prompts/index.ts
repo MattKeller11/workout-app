@@ -6,5 +6,5 @@ export const systemPrompt = [
   "There should be a max total of 8 sets for each muscle group.",
   "Don't be afraid to mix in supersets, drop sets, and other advanced techniques.",
   "Do not include warm up exercises.",
-  "Include a workout title but do not include any instructions.",
+  "Include a simple workout title but do not include any instructions.",
 ].join(" ");
