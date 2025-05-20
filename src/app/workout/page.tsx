@@ -3,46 +3,38 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
-
-interface WorkoutPlan {
-  header: string[];
-  dataRows: string[][];
-}
+import { useWorkoutPlan } from "@/app/workout/WorkoutPlanContext";
 
 export default function WorkoutChecklist() {
-  const [plan, setPlan] = useState<WorkoutPlan | null>(null);
+  const { plan } = useWorkoutPlan();
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const planStr = sessionStorage.getItem("workoutPlan");
-    if (planStr) {
-      const parsed = JSON.parse(planStr);
-      setPlan(parsed);
-      // Initialize all as unchecked
-      if (parsed && parsed.dataRows) {
-        const initialChecked: Record<string, boolean> = {};
-        parsed.dataRows.forEach((_: string[], i: number) => {
-          initialChecked[i] = false;
-        });
-        setChecked(initialChecked);
-      }
+    if (plan && plan.dataRows) {
+      const initialChecked: Record<string, boolean> = {};
+      plan.dataRows.forEach((_, i) => {
+        initialChecked[i] = false;
+      });
+      setChecked(initialChecked);
     }
-  }, []);
+  }, [plan]);
 
   function handleCheck(idx: number) {
     setChecked((prev) => ({ ...prev, [idx]: !prev[idx] }));
   }
 
+  const checkedCount = Object.values(checked).filter(Boolean).length;
+
   async function handleCompleteWorkout() {
     if (!plan) return;
+    const completedExercises = plan.dataRows
+      .map((row, i) => ({ checked: checked[i] || false, data: row }))
+      .filter((ex) => ex.checked);
+    if (completedExercises.length === 0) return;
     setSaving(true);
     setSaveMessage(null);
-    const completedExercises = plan.dataRows.map((row, i) => ({
-      checked: checked[i] || false,
-      data: row,
-    }));
     const date = new Date().toISOString();
     const { error } = await supabase.from("workouts").insert([
       {
@@ -111,7 +103,7 @@ export default function WorkoutChecklist() {
       <Button
         onClick={handleCompleteWorkout}
         className="mb-4"
-        disabled={saving}
+        disabled={saving || checkedCount === 0}
       >
         {saving ? "Saving..." : "Complete Workout"}
       </Button>

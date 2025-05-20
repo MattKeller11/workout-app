@@ -4,6 +4,8 @@ import { useState, useActionState, useEffect } from "react";
 import { getGroqResultAction } from "@/app/actions/groqAction";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { useWorkoutPlan } from "@/app/workout/WorkoutPlanContext";
+import { useFormStatus } from "react-dom";
 
 function parseGroqResponse(
   response: string
@@ -21,14 +23,23 @@ function parseGroqResponse(
   return { header, dataRows };
 }
 
+function GenerateButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={pending}>
+      {pending ? "Generating..." : "Generate"}
+    </Button>
+  );
+}
+
 export default function Home() {
   const [state, formAction] = useActionState(getGroqResultAction, "");
   const [parsed, setParsed] = useState<{
     header: string[];
     dataRows: string[][];
   } | null>(null);
-  const [generating, setGenerating] = useState(false);
   const router = useRouter();
+  const { setPlan, plan } = useWorkoutPlan();
 
   // Parse response when state changes
   useEffect(() => {
@@ -40,10 +51,16 @@ export default function Home() {
     }
   }, [state]);
 
+  // Show the last parsed plan if it exists, even if the user navigates back from /workout
+  useEffect(() => {
+    if (!parsed && plan) {
+      setParsed(plan);
+    }
+  }, [parsed, plan]);
+
   function handleStartWorkout() {
     if (!parsed) return;
-    // Save parsed data to sessionStorage and navigate
-    sessionStorage.setItem("workoutPlan", JSON.stringify(parsed));
+    setPlan(parsed);
     router.push("/workout");
   }
 
@@ -51,11 +68,7 @@ export default function Home() {
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
         <form
-          action={async (...args) => {
-            setGenerating(true);
-            await formAction(...args);
-            setGenerating(false);
-          }}
+          action={formAction}
           className="flex flex-col gap-4 w-full max-w-xl"
         >
           <label htmlFor="userMessage" className="font-semibold">
@@ -69,9 +82,7 @@ export default function Home() {
             className="border rounded px-3 py-2 text-base w-full"
             placeholder="Lets get it!"
           />
-          <Button type="submit" disabled={generating}>
-            {generating ? "Generating..." : "Generate"}
-          </Button>
+          <GenerateButton />
         </form>
         {parsed ? (
           <div className="mt-4 p-4 border rounded bg-neutral-900 text-neutral-100 max-w-xl shadow-lg w-full">
