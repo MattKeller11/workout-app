@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useActionState, useEffect } from "react";
+import { useState, useActionState } from "react";
 import { getGroqResultAction } from "@/app/actions/groqAction";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
-import { parseGroqResponse, parsePlanToStructured } from "@/lib/workoutParsing";
+import { useHomePlan } from "@/lib/useHomePlan";
 
 function GenerateButton() {
   const { pending } = useFormStatus();
@@ -29,19 +29,15 @@ export default function Home() {
   } | null>(null);
   const router = useRouter();
 
-  // Parse response when state changes
-  useEffect(() => {
-    if (state) {
-      const parsedResult = parseGroqResponse(state);
-      setParsed(
-        parsedResult && parsedResult.dataRows.length ? parsedResult : null
-      );
-    }
-  }, [state]);
+  useHomePlan(state, setParsed);
 
   async function handleStartWorkout() {
     if (!parsed) return;
-    const structuredRows = parsePlanToStructured(parsed);
+    const structuredRows = parsed.dataRows.map((row) => ({
+      exercise: row[0],
+      sets: row[1],
+      reps: row[2],
+    }));
     // Save the current workout to localStorage
     localStorage.setItem(
       "currentWorkout",

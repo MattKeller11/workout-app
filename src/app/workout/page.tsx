@@ -153,7 +153,7 @@ export default function WorkoutChecklist() {
           {saving ? "Saving..." : "Complete Workout"}
         </Button>
         <Button
-          onClick={() => window.history.back()}
+          onClick={() => router.push("/")}
           className="mb-0 w-full h-12 text-lg font-semibold tracking-wide rounded-lg shadow-md transition-colors duration-150"
           variant="secondary"
         >
