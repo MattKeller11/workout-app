@@ -16,8 +16,10 @@ function parseGroqResponse(
   if (lines.length < 2) return null;
   // Find header and data rows
   const header = lines[0].split("|").map((h) => h.trim());
+  // Skip the separator row (usually dashes) and any empty lines
   const dataRows = lines
-    .slice(2)
+    .slice(1)
+    .filter((line) => !/^[-|\s]+$/.test(line))
     .map((line) => line.split("|").map((cell) => cell.trim()));
   if (!dataRows.length) return null;
   return { header, dataRows };
