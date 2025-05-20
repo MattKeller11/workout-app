@@ -69,92 +69,96 @@ export default function WorkoutChecklist() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-neutral-950">
       <h1 className="text-3xl font-extrabold mb-8 text-neutral-100 tracking-tight drop-shadow-lg">
-        Workout Checklist
+        {plan.header && plan.header.length > 0
+          ? plan.header[0].replace(/\*\*(.*?)\*\*/g, "$1")
+          : "Workout Checklist"}
       </h1>
       <div className="w-full max-w-2xl bg-neutral-900 rounded-xl shadow-xl p-6 mb-8 border border-neutral-800">
         <table className="w-full text-left border-separate border-spacing-y-2">
           <thead>
             <tr>
-              <th className="px-2 py-1 text-neutral-400 font-mono w-8">#</th>
+              <th className="px-2 py-1 text-neutral-400 font-mono w-8 border-b border-neutral-700">
+                #
+              </th>
               <th className="px-2 py-1 font-bold border-b border-neutral-700 text-neutral-200">
                 Done
               </th>
-              {plan.header.map((h, i) =>
-                // Remove number/"#" column from header
-                i === 0 && h.match(/^#|No\.?$/i) ? null : (
-                  <th
-                    key={i}
-                    className="px-2 py-1 font-bold border-b border-neutral-700 text-neutral-200"
-                  >
-                    {h}
-                  </th>
-                )
-              )}
+              <th className="px-2 py-1 font-bold border-b border-neutral-700 text-neutral-200">
+                Exercise
+              </th>
             </tr>
           </thead>
           <tbody>
-            {plan.dataRows.map((row, i) => (
-              <tr
-                key={i}
-                className={
-                  checked[i]
-                    ? "opacity-50"
-                    : "hover:bg-neutral-800 transition-colors duration-150"
-                }
-              >
-                <td className="px-2 py-1 text-neutral-400 font-mono align-middle">
-                  {i + 1}
-                </td>
-                <td className="px-2 py-1 align-middle">
-                  <input
-                    type="checkbox"
-                    checked={checked[i] || false}
-                    onChange={() => handleCheck(i)}
-                    className="w-5 h-5 accent-green-500 rounded-full border-2 border-neutral-700 shadow-sm focus:ring-2 focus:ring-green-400"
-                  />
-                </td>
-                {/* Only remove the first cell if it is ONLY a number or number+period/parenthesis, otherwise just strip the prefix from the cell */}
-                {row.map((cell, j) => {
-                  if (
-                    j === 0 &&
-                    cell.match(/^\s*(\d+\.?|\d+\)|\d+\.|\d+\s)[\s\-\.]?$/)
-                  ) {
-                    // If the cell is just a number or number+punctuation, skip it
-                    return null;
+            {plan.dataRows.map((row, i) => {
+              const isLastRow = i === plan.dataRows.length - 1;
+              const borderClass = isLastRow
+                ? ""
+                : "border-b border-neutral-800";
+              return (
+                <tr
+                  key={i}
+                  className={
+                    checked[i]
+                      ? "opacity-50"
+                      : "hover:bg-neutral-800 transition-colors duration-150"
                   }
-                  // Otherwise, strip any leading number+punctuation, but keep the rest
-                  return (
-                    <td
-                      key={j}
-                      className="px-2 py-1 border-b border-neutral-800 text-neutral-100 align-middle"
-                    >
-                      {j === 0
-                        ? cell
-                            .replace(
-                              /^\s*(\d+\.?|\d+\)|\d+\.|\d+\s)[\s\-\.]*/,
-                              ""
-                            )
-                            .trim()
-                        : cell}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+                >
+                  <td
+                    className={`px-2 py-1 text-neutral-400 font-mono align-middle ${borderClass}`}
+                  >
+                    {i + 1}
+                  </td>
+                  <td className={`px-2 py-1 align-middle ${borderClass}`}>
+                    <input
+                      type="checkbox"
+                      checked={checked[i] || false}
+                      onChange={() => handleCheck(i)}
+                      className="w-5 h-5 accent-green-500 rounded-full border-2 border-neutral-700 shadow-sm focus:ring-2 focus:ring-green-400"
+                    />
+                  </td>
+                  {/* Only remove the first cell if it is ONLY a number or number+period/parenthesis, otherwise just strip the prefix from the cell */}
+                  {row.map((cell, j) => {
+                    if (
+                      j === 0 &&
+                      cell.match(/^[\s]*(\d+\.?|\d+\)|\d+\.|\d+\s)[\s\-\.]?$/)
+                    ) {
+                      // If the cell is just a number or number+punctuation, skip it
+                      return null;
+                    }
+                    // Otherwise, strip any leading number+punctuation, but keep the rest
+                    return (
+                      <td
+                        key={j}
+                        className={`px-2 py-1 text-neutral-100 align-middle ${borderClass}`}
+                      >
+                        {j === 0
+                          ? cell
+                              .replace(
+                                /^[\s]*(\d+\.?|\d+\)|\d+\.|\d+\s)[\s\-\.]*/,
+                                ""
+                              )
+                              .trim()
+                          : cell}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-      <div className="flex gap-4 w-full max-w-2xl justify-center">
+      <div className="flex flex-col gap-4 w-full max-w-2xl justify-center px-0">
         <Button
           onClick={handleCompleteWorkout}
-          className="mb-0 w-48 h-12 text-lg font-semibold tracking-wide rounded-lg shadow-md transition-colors duration-150"
+          className="mb-0 w-full h-12 text-lg font-semibold tracking-wide rounded-lg shadow-md transition-colors duration-150"
           disabled={saving}
         >
           {saving ? "Saving..." : "Complete Workout"}
         </Button>
         <Button
           onClick={() => window.history.back()}
-          className="mb-0 w-48 h-12 text-lg font-semibold tracking-wide rounded-lg shadow-md transition-colors duration-150"
+          className="mb-0 w-full h-12 text-lg font-semibold tracking-wide rounded-lg shadow-md transition-colors duration-150"
           variant="secondary"
         >
           Back to Plan
