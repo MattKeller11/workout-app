@@ -1,9 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { useFormState } from "react-dom";
+import { useState, useActionState, useEffect } from "react";
 import { getGroqResultAction } from "@/app/actions/groqAction";
-import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
 function parseGroqResponse(
@@ -23,15 +22,16 @@ function parseGroqResponse(
 }
 
 export default function Home() {
-  const [state, formAction] = useFormState(getGroqResultAction, "");
+  const [state, formAction] = useActionState(getGroqResultAction, "");
   const [parsed, setParsed] = useState<{
     header: string[];
     dataRows: string[][];
   } | null>(null);
+  const [generating, setGenerating] = useState(false);
   const router = useRouter();
 
   // Parse response when state changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (state) {
       const parsedResult = parseGroqResponse(state);
       setParsed(
@@ -51,7 +51,11 @@ export default function Home() {
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
         <form
-          action={formAction}
+          action={async (...args) => {
+            setGenerating(true);
+            await formAction(...args);
+            setGenerating(false);
+          }}
           className="flex flex-col gap-4 w-full max-w-xl"
         >
           <label htmlFor="userMessage" className="font-semibold">
@@ -65,7 +69,9 @@ export default function Home() {
             className="border rounded px-3 py-2 text-base w-full"
             placeholder="Lets get it!"
           />
-          <Button type="submit">Generate</Button>
+          <Button type="submit" disabled={generating}>
+            {generating ? "Generating..." : "Generate"}
+          </Button>
         </form>
         {parsed ? (
           <div className="mt-4 p-4 border rounded bg-neutral-900 text-neutral-100 max-w-xl shadow-lg w-full">

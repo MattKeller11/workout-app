@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabaseClient";
 
 interface WorkoutPlan {
   header: string[];
@@ -11,6 +12,8 @@ interface WorkoutPlan {
 export default function WorkoutChecklist() {
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const planStr = sessionStorage.getItem("workoutPlan");
@@ -30,6 +33,29 @@ export default function WorkoutChecklist() {
 
   function handleCheck(idx: number) {
     setChecked((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  }
+
+  async function handleCompleteWorkout() {
+    if (!plan) return;
+    setSaving(true);
+    setSaveMessage(null);
+    const completedExercises = plan.dataRows.map((row, i) => ({
+      checked: checked[i] || false,
+      data: row,
+    }));
+    const date = new Date().toISOString();
+    const { error } = await supabase.from("workouts").insert([
+      {
+        date,
+        exercises: completedExercises,
+      },
+    ]);
+    setSaving(false);
+    if (!error) {
+      setSaveMessage("Workout saved!");
+    } else {
+      setSaveMessage("Error saving workout: " + error.message);
+    }
   }
 
   if (!plan) {
@@ -82,6 +108,18 @@ export default function WorkoutChecklist() {
           ))}
         </tbody>
       </table>
+      <Button
+        onClick={handleCompleteWorkout}
+        className="mb-4"
+        disabled={saving}
+      >
+        {saving ? "Saving..." : "Complete Workout"}
+      </Button>
+      {saveMessage && (
+        <div className="mb-4 p-4 rounded bg-neutral-900 text-neutral-100 border border-neutral-700 max-w-xl text-center">
+          {saveMessage}
+        </div>
+      )}
       <Button onClick={() => window.history.back()}>Back to Plan</Button>
     </div>
   );
