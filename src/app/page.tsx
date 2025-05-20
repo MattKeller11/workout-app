@@ -4,26 +4,8 @@ import { useState, useActionState, useEffect } from "react";
 import { getGroqResultAction } from "@/app/actions/groqAction";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useWorkoutPlan } from "@/app/workout/WorkoutPlanContext";
 import { useFormStatus } from "react-dom";
-
-function parseGroqResponse(
-  response: string
-): { header: string[]; dataRows: string[][] } | null {
-  // Simple parser: expects response in a markdown or text table format
-  // Example: Exercise | Sets | Reps\n---|---|---\nBench Press | 3 | 10\n...
-  const lines = response.split("\n").filter(Boolean);
-  if (lines.length < 2) return null;
-  // Find header and data rows
-  const header = lines[0].split("|").map((h) => h.trim());
-  // Skip the separator row (usually dashes) and any empty lines
-  const dataRows = lines
-    .slice(1)
-    .filter((line) => !/^[-|\s]+$/.test(line))
-    .map((line) => line.split("|").map((cell) => cell.trim()));
-  if (!dataRows.length) return null;
-  return { header, dataRows };
-}
+import { parseGroqResponse, parsePlanToStructured } from "@/lib/workoutParsing";
 
 function GenerateButton() {
   const { pending } = useFormStatus();
@@ -41,7 +23,6 @@ export default function Home() {
     dataRows: string[][];
   } | null>(null);
   const router = useRouter();
-  const { setPlan, plan } = useWorkoutPlan();
 
   // Parse response when state changes
   useEffect(() => {
@@ -53,16 +34,17 @@ export default function Home() {
     }
   }, [state]);
 
-  // Show the last parsed plan if it exists, even if the user navigates back from /workout
-  useEffect(() => {
-    if (!parsed && plan) {
-      setParsed(plan);
-    }
-  }, [parsed, plan]);
-
-  function handleStartWorkout() {
+  async function handleStartWorkout() {
     if (!parsed) return;
-    setPlan(parsed);
+    const structuredRows = parsePlanToStructured(parsed);
+    // Save the current workout to localStorage
+    localStorage.setItem(
+      "currentWorkout",
+      JSON.stringify({
+        date: new Date().toISOString(),
+        exercises: structuredRows,
+      })
+    );
     router.push("/workout");
   }
 
@@ -74,7 +56,7 @@ export default function Home() {
           className="flex flex-col gap-4 w-full max-w-xl"
         >
           <label htmlFor="userMessage" className="font-semibold">
-            Provide muscle groups:
+            What do you want to train?
           </label>
           <input
             id="userMessage"
@@ -82,7 +64,7 @@ export default function Home() {
             type="text"
             required
             className="border rounded px-3 py-2 text-base w-full"
-            placeholder="Lets get it!"
+            placeholder="Muscle names"
           />
           <GenerateButton />
         </form>

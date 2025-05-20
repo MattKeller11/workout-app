@@ -2,42 +2,49 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabaseClient";
-import { useWorkoutPlan } from "@/app/workout/WorkoutPlanContext";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function WorkoutChecklist() {
-  const { plan } = useWorkoutPlan();
   const router = useRouter();
+  const [workout, setWorkout] = useState<{
+    id: string;
+    date: string;
+    exercises: Array<{ exercise: string; sets: string; reps: string }>;
+  } | null>(null);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (plan && plan.dataRows) {
-      const initialChecked: Record<string, boolean> = {};
-      plan.dataRows.forEach((_, i) => {
-        initialChecked[i] = false;
-      });
-      setChecked(initialChecked);
-    }
-  }, [plan]);
-
-  useEffect(() => {
-    if (!plan) {
+    // Always load current workout from localStorage (no DB fetch)
+    const local = localStorage.getItem("currentWorkout");
+    if (local) {
+      const parsed = JSON.parse(local);
+      setWorkout(parsed);
+      // Initialize checked state
+      if (parsed && parsed.exercises) {
+        const initialChecked: Record<string, boolean> = {};
+        parsed.exercises.forEach((_: unknown, i: number) => {
+          initialChecked[i] = false;
+        });
+        setChecked(initialChecked);
+      }
+    } else {
       router.replace("/");
     }
-  }, [plan, router]);
+  }, [router]);
 
   function handleCheck(idx: number) {
     setChecked((prev) => ({ ...prev, [idx]: !prev[idx] }));
   }
 
   async function handleCompleteWorkout() {
-    if (!plan) return;
-    const completedExercises = plan.dataRows
-      .map((row, i) => ({ checked: checked[i] || false, data: row }))
-      .filter((ex) => ex.checked);
+    if (!workout) return;
+    const completedExercises = workout.exercises
+      .map((row, i: number) => ({ checked: checked[i] || false, data: row }))
+      .filter((ex) => ex.checked)
+      .map((ex) => ex.data);
     if (completedExercises.length === 0) {
       setSaveMessage(
         "You must check off at least one exercise before completing your workout."
@@ -47,6 +54,7 @@ export default function WorkoutChecklist() {
     }
     setSaving(true);
     setSaveMessage(null);
+    // Always save to DB as completed, then clear localStorage
     const date = new Date().toISOString();
     const { error } = await supabase.from("workouts").insert([
       {
@@ -57,40 +65,44 @@ export default function WorkoutChecklist() {
     setSaving(false);
     if (!error) {
       setSaveMessage("Workout saved!");
+      localStorage.removeItem("currentWorkout");
     } else {
       setSaveMessage("Error saving workout: " + error.message);
     }
   }
 
-  if (!plan) {
+  if (!workout) {
     return null;
   }
+  const exercises: Array<{ exercise: string; sets: string; reps: string }> =
+    workout.exercises ?? [];
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-neutral-950">
       <h1 className="text-3xl font-extrabold mb-8 text-neutral-100 tracking-tight drop-shadow-lg">
-        {plan.header && plan.header.length > 0
-          ? plan.header[0].replace(/\*\*(.*?)\*\*/g, "$1")
-          : "Workout Checklist"}
+        Workout Checklist
       </h1>
       <div className="w-full max-w-2xl bg-neutral-900 rounded-xl shadow-xl p-6 mb-8 border border-neutral-800">
         <table className="w-full text-left border-separate border-spacing-y-2">
           <thead>
             <tr>
-              <th className="px-2 py-1 text-neutral-400 font-mono w-8 border-b border-neutral-700">
-                #
-              </th>
               <th className="px-2 py-1 font-bold border-b border-neutral-700 text-neutral-200">
                 Done
               </th>
               <th className="px-2 py-1 font-bold border-b border-neutral-700 text-neutral-200">
                 Exercise
               </th>
+              <th className="px-2 py-1 font-bold border-b border-neutral-700 text-neutral-200">
+                Sets
+              </th>
+              <th className="px-2 py-1 font-bold border-b border-neutral-700 text-neutral-200">
+                Reps
+              </th>
             </tr>
           </thead>
           <tbody>
-            {plan.dataRows.map((row, i) => {
-              const isLastRow = i === plan.dataRows.length - 1;
+            {exercises.map((row, i) => {
+              const isLastRow = i === exercises.length - 1;
               const borderClass = isLastRow
                 ? ""
                 : "border-b border-neutral-800";
@@ -103,11 +115,6 @@ export default function WorkoutChecklist() {
                       : "hover:bg-neutral-800 transition-colors duration-150"
                   }
                 >
-                  <td
-                    className={`px-2 py-1 text-neutral-400 font-mono align-middle ${borderClass}`}
-                  >
-                    {i + 1}
-                  </td>
                   <td className={`px-2 py-1 align-middle ${borderClass}`}>
                     <input
                       type="checkbox"
@@ -116,32 +123,21 @@ export default function WorkoutChecklist() {
                       className="w-5 h-5 accent-green-500 rounded-full border-2 border-neutral-700 shadow-sm focus:ring-2 focus:ring-green-400"
                     />
                   </td>
-                  {/* Only remove the first cell if it is ONLY a number or number+period/parenthesis, otherwise just strip the prefix from the cell */}
-                  {row.map((cell, j) => {
-                    if (
-                      j === 0 &&
-                      cell.match(/^[\s]*(\d+\.?|\d+\)|\d+\.|\d+\s)[\s\-\.]?$/)
-                    ) {
-                      // If the cell is just a number or number+punctuation, skip it
-                      return null;
-                    }
-                    // Otherwise, strip any leading number+punctuation, but keep the rest
-                    return (
-                      <td
-                        key={j}
-                        className={`px-2 py-1 text-neutral-100 align-middle ${borderClass}`}
-                      >
-                        {j === 0
-                          ? cell
-                              .replace(
-                                /^[\s]*(\d+\.?|\d+\)|\d+\.|\d+\s)[\s\-\.]*/,
-                                ""
-                              )
-                              .trim()
-                          : cell}
-                      </td>
-                    );
-                  })}
+                  <td
+                    className={`px-2 py-1 text-neutral-100 align-middle ${borderClass}`}
+                  >
+                    {row.exercise}
+                  </td>
+                  <td
+                    className={`px-2 py-1 text-neutral-100 align-middle ${borderClass}`}
+                  >
+                    {row.sets}
+                  </td>
+                  <td
+                    className={`px-2 py-1 text-neutral-100 align-middle ${borderClass}`}
+                  >
+                    {row.reps}
+                  </td>
                 </tr>
               );
             })}
