@@ -28,7 +28,7 @@ function parseGroqResponse(
 function GenerateButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" variant="secondary" disabled={pending}>
       {pending ? "Generating..." : "Generate"}
     </Button>
   );
@@ -96,7 +96,7 @@ export default function Home() {
                       key={i}
                       className="px-2 py-1 font-bold border-b border-neutral-700"
                     >
-                      {h}
+                      {h.replace(/\*\*(.*?)\*\*/g, "$1")}
                     </th>
                   ))}
                 </tr>
