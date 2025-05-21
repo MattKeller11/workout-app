@@ -5,6 +5,7 @@ import { getGroqResultAction } from "@/app/actions/groqAction";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
+import { WorkoutPlan, isNormalExercise } from "@/lib/types";
 
 function GenerateButton() {
   const { pending } = useFormStatus();
@@ -21,14 +22,6 @@ function GenerateButton() {
 }
 
 export default function Home() {
-  type WorkoutPlan = {
-    title: string;
-    exercises: Array<{
-      exercise: string;
-      sets: number;
-      reps: number;
-    }>;
-  };
   // UseActionState with a reducer that just returns the new state
   const [state, formAction] = useActionState<string | WorkoutPlan, FormData>(
     async (_prev: string | WorkoutPlan, formData: FormData) =>
@@ -45,21 +38,6 @@ export default function Home() {
       ? (state as WorkoutPlan)
       : null;
   const parseError = state && typeof state === "string";
-
-  // Type guards
-  function isNormalExercise(ex: unknown): ex is {
-    exercise: string;
-    sets: number;
-    reps: number;
-  } {
-    return (
-      typeof ex === "object" &&
-      ex !== null &&
-      "exercise" in ex &&
-      "sets" in ex &&
-      "reps" in ex
-    );
-  }
 
   async function handleStartWorkout() {
     if (!parsedPlan) return;
