@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useActionState } from "react";
 import { getGroqResultAction } from "@/app/actions/groqAction";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
-import { useHomePlan } from "@/lib/useHomePlan";
 
 function GenerateButton() {
   const { pending } = useFormStatus();
@@ -22,28 +21,54 @@ function GenerateButton() {
 }
 
 export default function Home() {
-  const [state, formAction] = useActionState(getGroqResultAction, "");
-  const [parsed, setParsed] = useState<{
-    header: string[];
-    dataRows: string[][];
-  } | null>(null);
+  type WorkoutPlan = {
+    title: string;
+    exercises: Array<{
+      exercise: string;
+      sets: number;
+      reps: number;
+    }>;
+  };
+  // UseActionState with a reducer that just returns the new state
+  const [state, formAction] = useActionState<string | WorkoutPlan, FormData>(
+    async (_prev: string | WorkoutPlan, formData: FormData) =>
+      await getGroqResultAction("", formData),
+    ""
+  );
   const router = useRouter();
 
-  useHomePlan(state, setParsed);
+  const parsedPlan =
+    state &&
+    typeof state === "object" &&
+    "title" in state &&
+    "exercises" in state
+      ? (state as WorkoutPlan)
+      : null;
+  const parseError = state && typeof state === "string";
+
+  // Type guards
+  function isNormalExercise(ex: unknown): ex is {
+    exercise: string;
+    sets: number;
+    reps: number;
+  } {
+    return (
+      typeof ex === "object" &&
+      ex !== null &&
+      "exercise" in ex &&
+      "sets" in ex &&
+      "reps" in ex
+    );
+  }
 
   async function handleStartWorkout() {
-    if (!parsed) return;
-    const structuredRows = parsed.dataRows.map((row) => ({
-      exercise: row[0],
-      sets: row[1],
-      reps: row[2],
-    }));
-    // Save the current workout to localStorage
+    if (!parsedPlan) return;
+    // Save the parsed plan to localStorage
     localStorage.setItem(
       "currentWorkout",
       JSON.stringify({
         date: new Date().toISOString(),
-        exercises: structuredRows,
+        plan: parsedPlan,
       })
     );
     router.push("/workout");
@@ -82,7 +107,7 @@ export default function Home() {
           <GenerateButton />
         </form>
         {/* Show animation if no plan is present */}
-        {!parsed && !state && (
+        {!state && (
           <div className="flex flex-col items-center justify-center mt-40">
             {/* Animated dumbbell icon */}
             <svg
@@ -106,40 +131,47 @@ export default function Home() {
             </svg>
           </div>
         )}
-        {parsed ? (
+        {parsedPlan && (
           <div className="w-full bg-neutral-900 rounded-xl shadow-lg p-6 border border-neutral-800 flex flex-col items-center">
             <h2
               className="text-2xl font-bold mb-4 text-center"
               style={{ color: "#4ade80" }}
             >
-              Workout Plan
+              {parsedPlan.title}
             </h2>
-            <table className="w-full text-left border-separate border-spacing-y-2 mb-4">
+            <table className="min-w-full border border-neutral-700 my-4 text-neutral-100">
               <thead>
                 <tr>
-                  {parsed.header.map((h, i) => (
-                    <th
-                      key={i}
-                      className="px-2 py-1 font-bold border-b border-neutral-700 text-neutral-200"
-                    >
-                      {h.replace(/\*\*(.*?)\*\*/g, "$1")}
-                    </th>
-                  ))}
+                  <th className="px-3 py-2 border-b border-neutral-700 text-left font-bold">
+                    Exercise
+                  </th>
+                  <th className="px-3 py-2 border-b border-neutral-700 text-left font-bold">
+                    Sets
+                  </th>
+                  <th className="px-3 py-2 border-b border-neutral-700 text-left font-bold">
+                    Reps
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {parsed.dataRows.map((row, i) => (
-                  <tr key={i}>
-                    {row.map((cell, j) => (
-                      <td
-                        key={j}
-                        className="px-2 py-1 border-b border-neutral-800 text-neutral-100"
-                      >
-                        {cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {parsedPlan.exercises.map((ex, i) => {
+                  if (isNormalExercise(ex)) {
+                    return (
+                      <tr key={i}>
+                        <td className="px-3 py-2 border-b border-neutral-800">
+                          {ex.exercise}
+                        </td>
+                        <td className="px-3 py-2 border-b border-neutral-800">
+                          {ex.sets}
+                        </td>
+                        <td className="px-3 py-2 border-b border-neutral-800">
+                          {ex.reps}
+                        </td>
+                      </tr>
+                    );
+                  }
+                  return null;
+                })}
               </tbody>
             </table>
             <Button
@@ -150,11 +182,12 @@ export default function Home() {
               Start Workout
             </Button>
           </div>
-        ) : state ? (
-          <div className="mt-4 p-4 border rounded bg-neutral-900 text-neutral-100 max-w-xl shadow-lg">
-            {state}
+        )}
+        {parseError && (
+          <div className="mt-4 p-4 border rounded bg-red-900 text-red-100 max-w-xl shadow-lg">
+            Could not parse workout plan. Please try again.
           </div>
-        ) : null}
+        )}
       </main>
     </div>
   );

@@ -15,8 +15,17 @@ export async function getGroqResultAction(
   }
   try {
     const data = await getGroqChatCompletion(`${context}\n${userMessage}`);
-    return data.choices?.[0]?.message?.content || "No result returned";
+    if (
+      !data ||
+      typeof data !== "object" ||
+      !("title" in data) ||
+      !("exercises" in data)
+    ) {
+      return "Invalid response from Groq: " + JSON.stringify(data);
+    }
+    return data;
   } catch (e) {
+    console.error("Groq error:", e);
     return e instanceof Error ? e.message : "Unknown error";
   }
 }
