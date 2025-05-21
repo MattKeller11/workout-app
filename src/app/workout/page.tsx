@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 import { useParsedWorkoutPlan } from "@/lib/useParsedWorkoutPlan";
 import { WorkoutPlanTable } from "./WorkoutPlanTable";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { CompletionCheckAnimation } from "./CompletionCheckAnimation";
+import { useCompleteWorkout } from "./useCompleteWorkout";
 
 export default function WorkoutChecklist() {
   const router = useRouter();
@@ -14,10 +15,16 @@ export default function WorkoutChecklist() {
     date: string;
     plan: string;
   } | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [checked, setChecked] = useState<boolean[]>([]);
   const [showMustCheckMsg, setShowMustCheckMsg] = useState(false);
+  const {
+    completing,
+    error: completeError,
+    completeWorkout,
+    setError: setCompleteError,
+    setSuccess: setCompleteSuccess,
+  } = useCompleteWorkout();
+  const [showSuccessAnim, setShowSuccessAnim] = useState(false);
 
   useEffect(() => {
     const local =
@@ -59,23 +66,23 @@ export default function WorkoutChecklist() {
       setShowMustCheckMsg(true);
       return;
     }
-    setSaving(true);
-    setSaveMessage(null);
-    // Save the raw plan to DB as completed, then clear localStorage
-    const date = new Date().toISOString();
-    const { error } = await supabase.from("workouts").insert([
-      {
-        date,
-        plan: workout.plan,
-      },
-    ]);
-    setSaving(false);
-    if (!error) {
-      setSaveMessage("Workout saved!");
-      localStorage.removeItem("currentWorkout");
-    } else {
-      setSaveMessage("Error saving workout: " + error.message);
+    await completeWorkout(workout);
+    if (!completeError && !completing) {
+      setShowSuccessAnim(true);
     }
+  }
+
+  // Hide the workout page content while the animation is showing
+  if (showSuccessAnim) {
+    // Trigger navigation after a delay, but do NOT set showSuccessAnim to false until after navigation
+    setTimeout(() => {
+      router.replace("/");
+    }, 1500); // match animation duration
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-950">
+        <CompletionCheckAnimation onDone={() => {}} />
+      </div>
+    );
   }
 
   if (!workout) {
@@ -105,9 +112,9 @@ export default function WorkoutChecklist() {
         <Button
           onClick={handleCompleteWorkout}
           className="mb-0 w-full h-12 text-lg font-semibold tracking-wide rounded-lg shadow-md transition-colors duration-150"
-          disabled={saving}
+          disabled={completing || showSuccessAnim}
         >
-          {saving ? "Saving..." : "Complete Workout"}
+          {completing ? "Completing..." : "Complete Workout"}
         </Button>
         <Button
           onClick={() => router.push("/")}
@@ -117,10 +124,14 @@ export default function WorkoutChecklist() {
           Back to Plan
         </Button>
       </div>
-      {saveMessage && (
-        <div className="mt-6 p-4 rounded bg-neutral-900 text-neutral-100 border border-green-700 max-w-xl text-center shadow-lg">
-          {saveMessage}
-        </div>
+      {showSuccessAnim && (
+        <CompletionCheckAnimation
+          onDone={() => {
+            setShowSuccessAnim(false);
+            setCompleteSuccess(false);
+            router.push("/");
+          }}
+        />
       )}
       <Dialog open={showMustCheckMsg} onOpenChange={setShowMustCheckMsg}>
         <DialogContent className="bg-yellow-900 text-yellow-100 rounded-md shadow-md p-4 max-w-xs w-full flex flex-col items-center border-0">
@@ -135,6 +146,26 @@ export default function WorkoutChecklist() {
             size="sm"
             className="mt-2 w-24 h-8 text-sm font-medium"
             onClick={() => setShowMustCheckMsg(false)}
+          >
+            OK
+          </Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!completeError}
+        onOpenChange={(v) => {
+          if (!v) setCompleteError(null);
+        }}
+      >
+        <DialogContent className="bg-red-900 text-red-100 rounded-md shadow-md p-4 max-w-xs w-full flex flex-col items-center border-0">
+          <DialogTitle className="text-base font-semibold mb-1 text-center p-0">
+            Error
+          </DialogTitle>
+          <div className="text-sm mb-1 text-center p-0">{completeError}</div>
+          <Button
+            size="sm"
+            className="mt-2 w-24 h-8 text-sm font-medium"
+            onClick={() => setCompleteError(null)}
           >
             OK
           </Button>
