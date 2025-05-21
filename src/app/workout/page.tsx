@@ -61,10 +61,7 @@ export default function WorkoutChecklist() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-neutral-950">
-      <h1 className="text-3xl font-extrabold mb-8 text-neutral-100 tracking-tight drop-shadow-lg">
-        Workout Checklist
-      </h1>
+    <div className="min-h-screen flex flex-col items-center justify-start p-8 bg-neutral-950">
       <div className="w-full max-w-2xl bg-neutral-900 rounded-xl shadow-xl p-6 mb-8 border border-neutral-800">
         {parsedPlan ? (
           <WorkoutPlanTable plan={parsedPlan} />
