@@ -1,21 +1,16 @@
-import React, { useState } from "react";
+import React from "react";
 import { WorkoutPlan, isNormalExercise } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 
-export function WorkoutPlanTable({ plan }: { plan: WorkoutPlan }) {
-  // Track checked state for each exercise
-  const [checked, setChecked] = useState<boolean[]>(() =>
-    plan.exercises.map(() => false)
-  );
-
-  const handleCheck = (idx: number, value: boolean) => {
-    setChecked((prev) => {
-      const next = [...prev];
-      next[idx] = value;
-      return next;
-    });
-  };
-
+export function WorkoutPlanTable({
+  plan,
+  checked,
+  onCheck,
+}: {
+  plan: WorkoutPlan;
+  checked: boolean[];
+  onCheck: (idx: number, value: boolean) => void;
+}) {
   return (
     <>
       <h2 className="text-xl font-bold mb-4 text-green-400 text-center">
@@ -39,12 +34,21 @@ export function WorkoutPlanTable({ plan }: { plan: WorkoutPlan }) {
         <tbody>
           {plan.exercises.map((ex, i) =>
             isNormalExercise(ex) ? (
-              <tr key={i}>
+              <tr
+                key={i}
+                className={
+                  checked[i]
+                    ? "opacity-40 cursor-pointer"
+                    : "hover:bg-neutral-800 cursor-pointer"
+                }
+                onClick={() => onCheck(i, !checked[i])}
+              >
                 <td className="px-3 py-2 border-b border-neutral-800">
                   <Checkbox
                     checked={checked[i]}
-                    onCheckedChange={(val) => handleCheck(i, !!val)}
+                    onCheckedChange={(val) => onCheck(i, !!val)}
                     aria-label={`Mark ${ex.exercise} as complete`}
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </td>
                 <td className="px-3 py-2 border-b border-neutral-800">

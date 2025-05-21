@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useParsedWorkoutPlan } from "@/lib/useParsedWorkoutPlan";
 import { WorkoutPlanTable } from "./WorkoutPlanTable";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export default function WorkoutChecklist() {
   const router = useRouter();
@@ -15,6 +16,8 @@ export default function WorkoutChecklist() {
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [checked, setChecked] = useState<boolean[]>([]);
+  const [showMustCheckMsg, setShowMustCheckMsg] = useState(false);
 
   useEffect(() => {
     const local =
@@ -33,8 +36,29 @@ export default function WorkoutChecklist() {
     }
   }, [router]);
 
+  const parsedPlan = useParsedWorkoutPlan(workout);
+
+  useEffect(() => {
+    if (parsedPlan) {
+      setChecked(parsedPlan.exercises.map(() => false));
+    }
+  }, [parsedPlan]);
+
+  function handleCheck(idx: number, value: boolean) {
+    setChecked((prev) => {
+      const next = [...prev];
+      next[idx] = value;
+      return next;
+    });
+    setShowMustCheckMsg(false);
+  }
+
   async function handleCompleteWorkout() {
     if (!workout) return;
+    if (!checked.some(Boolean)) {
+      setShowMustCheckMsg(true);
+      return;
+    }
     setSaving(true);
     setSaveMessage(null);
     // Save the raw plan to DB as completed, then clear localStorage
@@ -54,8 +78,6 @@ export default function WorkoutChecklist() {
     }
   }
 
-  const parsedPlan = useParsedWorkoutPlan(workout);
-
   if (!workout) {
     return null;
   }
@@ -64,7 +86,11 @@ export default function WorkoutChecklist() {
     <div className="min-h-screen flex flex-col items-center justify-start p-8 bg-neutral-950">
       <div className="w-full max-w-2xl bg-neutral-900 rounded-xl shadow-xl p-6 mb-8 border border-neutral-800">
         {parsedPlan ? (
-          <WorkoutPlanTable plan={parsedPlan} />
+          <WorkoutPlanTable
+            plan={parsedPlan}
+            checked={checked}
+            onCheck={handleCheck}
+          />
         ) : (
           <div className="prose prose-invert w-full max-w-none text-neutral-100 mb-4">
             <pre className="whitespace-pre-wrap">
@@ -96,6 +122,24 @@ export default function WorkoutChecklist() {
           {saveMessage}
         </div>
       )}
+      <Dialog open={showMustCheckMsg} onOpenChange={setShowMustCheckMsg}>
+        <DialogContent className="bg-yellow-900 text-yellow-100 rounded-md shadow-md p-4 max-w-xs w-full flex flex-col items-center border-0">
+          <DialogTitle className="text-base font-semibold mb-1 text-center p-0">
+            Action Required
+          </DialogTitle>
+          <div className="text-sm mb-1 text-center p-0">
+            Please check off at least one exercise before completing your
+            workout.
+          </div>
+          <Button
+            size="sm"
+            className="mt-2 w-24 h-8 text-sm font-medium"
+            onClick={() => setShowMustCheckMsg(false)}
+          >
+            OK
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
