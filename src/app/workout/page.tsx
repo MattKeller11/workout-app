@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useParsedWorkoutPlan } from "@/lib/useParsedWorkoutPlan";
+import { WorkoutPlanTable } from "./WorkoutPlanTable";
 
 export default function WorkoutChecklist() {
   const router = useRouter();
@@ -15,11 +17,17 @@ export default function WorkoutChecklist() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Always load current workout from localStorage (no DB fetch)
-    const local = localStorage.getItem("currentWorkout");
+    const local =
+      typeof window !== "undefined"
+        ? localStorage.getItem("currentWorkout")
+        : null;
     if (local) {
-      const parsed = JSON.parse(local);
-      setWorkout(parsed);
+      try {
+        const parsed = JSON.parse(local);
+        setWorkout(parsed);
+      } catch {
+        setWorkout(null);
+      }
     } else {
       router.replace("/");
     }
@@ -46,6 +54,8 @@ export default function WorkoutChecklist() {
     }
   }
 
+  const parsedPlan = useParsedWorkoutPlan(workout);
+
   if (!workout) {
     return null;
   }
@@ -56,9 +66,17 @@ export default function WorkoutChecklist() {
         Workout Checklist
       </h1>
       <div className="w-full max-w-2xl bg-neutral-900 rounded-xl shadow-xl p-6 mb-8 border border-neutral-800">
-        <div className="prose prose-invert w-full max-w-none text-neutral-100 mb-4">
-          <pre className="whitespace-pre-wrap">{workout.plan}</pre>
-        </div>
+        {parsedPlan ? (
+          <WorkoutPlanTable plan={parsedPlan} />
+        ) : (
+          <div className="prose prose-invert w-full max-w-none text-neutral-100 mb-4">
+            <pre className="whitespace-pre-wrap">
+              {typeof workout?.plan === "string"
+                ? workout.plan
+                : JSON.stringify(workout?.plan, null, 2)}
+            </pre>
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-4 w-full max-w-2xl justify-center px-0">
         <Button
