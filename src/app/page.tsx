@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { WorkoutPlan, isNormalExercise } from "@/lib/types";
+import { MountainTitle } from "../components/MountainTitle";
 
 function GenerateButton() {
   const { pending } = useFormStatus();
@@ -54,13 +55,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 p-6">
-      <header className="w-full max-w-xl flex flex-col items-center gap-2 mt-8 mb-10">
-        <h1
-          className="text-4xl sm:text-5xl font-extrabold"
-          style={{ color: "#4ade80" }}
-        >
-          Minimalist Workout
-        </h1>
+      <header className="w-full max-w-xl flex flex-col items-center gap-2 mb-6 relative">
+        <div className="relative w-full flex flex-col items-center justify-center">
+          <MountainTitle />
+        </div>
       </header>
       <main className="flex flex-col gap-8 w-full max-w-xl items-center">
         <form
@@ -84,31 +82,38 @@ export default function Home() {
           />
           <GenerateButton />
         </form>
+        {/* History Link Card using shadcn Button */}
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => router.push("/workout/history")}
+          className="group flex items-center gap-3 px-5 py-3 mt-2 rounded-lg border border-neutral-800 bg-neutral-900 hover:bg-green-950/60 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+          style={{ minWidth: 0 }}
+          aria-label="View workout history"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-green-400 group-hover:text-green-300 transition-colors"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4" />
+            <path d="M8 2v4" />
+            <path d="M3 10h18" />
+          </svg>
+          <span className="text-green-300 group-hover:text-green-200 font-medium text-base transition-colors">
+            View Workout History
+          </span>
+        </Button>
         {/* Show animation if no plan is present */}
-        {!state && (
-          <div className="flex flex-col items-center justify-center mt-40">
-            {/* Animated dumbbell icon */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="96"
-              height="96"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="lucide lucide-dumbbell-icon lucide-dumbbell h-24 w-24 animate-bounce"
-              style={{ color: "#4ade80" }}
-            >
-              <path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z" />
-              <path d="m2.5 21.5 1.4-1.4" />
-              <path d="m20.1 3.9 1.4-1.4" />
-              <path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z" />
-              <path d="m9.6 14.4 4.8-4.8" />
-            </svg>
-          </div>
-        )}
+        {!state && <div className="h-24" />}
         {parsedPlan && (
           <div className="w-full bg-neutral-900 rounded-xl shadow-lg p-6 border border-neutral-800 flex flex-col items-center">
             <h2
