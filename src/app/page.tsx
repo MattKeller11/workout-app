@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { WorkoutPlan, isNormalExercise } from "@/lib/types";
 import { MountainTitle } from "../components/MountainTitle";
+import PageContainer from "@/components/PageContainer";
 
 export const GenerateButton = () => {
   const { pending } = useFormStatus();
@@ -53,13 +54,13 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 p-6">
-      <header className="w-full max-w-xl flex flex-col items-center gap-2 mb-6 relative">
+    <PageContainer>
+      <header className="w-full flex flex-col items-center gap-2 mb-6 relative">
         <div className="relative w-full flex flex-col items-center justify-center">
           <MountainTitle />
         </div>
       </header>
-      <main className="flex flex-col w-full max-w-xl items-center pb-8">
+      <main className="flex flex-col w-full items-center pb-8">
         {/* Tab Content */}
         <>
           <form
@@ -144,6 +145,6 @@ export default function Home() {
           )}
         </>
       </main>
-    </div>
+    </PageContainer>
   );
 }

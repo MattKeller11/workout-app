@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { WorkoutPlan } from "@/lib/types";
+import PageContainer from "@/components/PageContainer";
 
 interface HistoryItem {
   id: string;
@@ -68,8 +69,8 @@ const HistoryPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start p-8 bg-neutral-950">
-      <div className="w-full max-w-2xl bg-neutral-900 rounded-xl shadow-xl p-6 mb-8 border border-neutral-800">
+    <PageContainer>
+      <div className="w-full bg-neutral-900 rounded-xl shadow-xl p-6 mb-8 border border-neutral-800 max-w-xl">
         <h1 className="text-2xl font-bold mb-6 text-green-400 text-center">
           Workout History
         </h1>
@@ -186,7 +187,7 @@ const HistoryPage = () => {
           </Button>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 };
 
