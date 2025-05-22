@@ -8,13 +8,11 @@ import { WorkoutPlanTable } from "./WorkoutPlanTable";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { CompletionCheckAnimation } from "./CompletionCheckAnimation";
 import { useCompleteWorkout } from "./useCompleteWorkout";
+import { Workout } from "@/types/workout";
 
 export default function WorkoutChecklist() {
   const router = useRouter();
-  const [workout, setWorkout] = useState<{
-    date: string;
-    plan: string;
-  } | null>(null);
+  const [workout, setWorkout] = useState<Workout | null>(null);
   const [checked, setChecked] = useState<boolean[]>([]);
   const [showMustCheckMsg, setShowMustCheckMsg] = useState(false);
   const {
@@ -61,12 +59,29 @@ export default function WorkoutChecklist() {
   }
 
   async function handleCompleteWorkout() {
-    if (!workout) return;
+    if (!workout || !parsedPlan) return;
     if (!checked.some(Boolean)) {
       setShowMustCheckMsg(true);
       return;
     }
-    await completeWorkout(workout);
+
+    // Filter exercises where checked is true
+    const completedExercises = parsedPlan.exercises.filter(
+      (_, idx) => checked[idx]
+    );
+
+    // Create updated workout with filtered exercises
+    const updatedWorkout: Workout = {
+      date: workout.date,
+      plan: {
+        title: parsedPlan.title,
+        exercises: completedExercises,
+      },
+    };
+
+    // Pass to completeWorkout
+    await completeWorkout(updatedWorkout);
+
     if (!completeError && !completing) {
       setShowSuccessAnim(true);
     }
