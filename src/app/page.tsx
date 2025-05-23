@@ -4,24 +4,10 @@ import { useActionState } from "react";
 import { getGroqResultAction } from "@/app/actions/groqAction";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useFormStatus } from "react-dom";
 import { WorkoutPlan, isNormalExercise } from "@/lib/types";
 import { MountainTitle } from "../components/MountainTitle";
 import PageContainer from "@/components/PageContainer";
-
-export const GenerateButton = () => {
-  const { pending } = useFormStatus();
-  return (
-    <Button
-      type="submit"
-      variant="secondary"
-      disabled={pending}
-      className="w-full"
-    >
-      {pending ? "Generating..." : "Generate"}
-    </Button>
-  );
-};
+import { GenerateButton } from "@/components/GenerateButton";
 
 export default function Home() {
   const [state, formAction] = useActionState<string | WorkoutPlan, FormData>(
